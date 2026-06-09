@@ -3,7 +3,6 @@
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { onboardingSchema } from "@/lib/validations";
-import { redirect } from "next/navigation";
 import { z } from "zod";
 
 export async function completeOnboarding(input: z.infer<typeof onboardingSchema>) {
@@ -35,6 +34,4 @@ export async function completeOnboarding(input: z.infer<typeof onboardingSchema>
     where: { id: userId },
     data: { onboarded: true },
   });
-
-  redirect("/dashboard");
 }
