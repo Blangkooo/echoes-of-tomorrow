@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Filter } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EchoCard } from "@/components/echoes/EchoCard";
 import { CreateEchoModal } from "@/components/echoes/CreateEchoModal";

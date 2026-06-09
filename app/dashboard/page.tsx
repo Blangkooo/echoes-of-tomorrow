@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import Link from "next/link";
 import { Header } from "@/components/layout/Header";
 import { MessageSquare, Lock, Sparkles, GitBranch, Clock, ArrowRight, Plus } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 
 async function getDashboardData(userId: string) {
   const [echoCount, capsuleCount, universeCount, recentEchoes, profile] = await Promise.all([
