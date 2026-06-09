@@ -1,21 +1,19 @@
 "use server";
 
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
+import { getUserId } from "@/lib/get-user-id";
 import { createEchoSchema, updateEchoSchema } from "@/lib/validations";
 import { saveMemory } from "@/lib/memory";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 export async function createEcho(input: z.input<typeof createEchoSchema>) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-
+  const userId = await getUserId();
   const data = createEchoSchema.parse(input);
 
   const echo = await db.echo.create({
     data: {
-      userId: session.user.id,
+      userId,
       type: data.type,
       title: data.title,
       content: data.content,
@@ -26,9 +24,8 @@ export async function createEcho(input: z.input<typeof createEchoSchema>) {
     },
   });
 
-  // Save to memory system for RAG
   await saveMemory(
-    session.user.id,
+    userId,
     `${data.type.toLowerCase()} — "${data.title}": ${data.content.slice(0, 200)}`,
     "ECHO",
     echo.id,
@@ -38,20 +35,16 @@ export async function createEcho(input: z.input<typeof createEchoSchema>) {
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/echoes");
   revalidatePath("/dashboard/timeline");
-
   return echo;
 }
 
 export async function updateEcho(input: z.infer<typeof updateEchoSchema>) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-
+  const userId = await getUserId();
   const data = updateEchoSchema.parse(input);
   const { id, ...updates } = data;
 
-  // Verify ownership
   const echo = await db.echo.findUnique({ where: { id }, select: { userId: true } });
-  if (!echo || echo.userId !== session.user.id) throw new Error("Not found");
+  if (!echo || echo.userId !== userId) throw new Error("Not found");
 
   const updated = await db.echo.update({
     where: { id },
@@ -66,25 +59,20 @@ export async function updateEcho(input: z.infer<typeof updateEchoSchema>) {
 }
 
 export async function deleteEcho(id: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-
+  const userId = await getUserId();
   const echo = await db.echo.findUnique({ where: { id }, select: { userId: true } });
-  if (!echo || echo.userId !== session.user.id) throw new Error("Not found");
+  if (!echo || echo.userId !== userId) throw new Error("Not found");
 
   await db.echo.delete({ where: { id } });
-
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/echoes");
   revalidatePath("/dashboard/timeline");
 }
 
 export async function pinEcho(id: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Unauthorized");
-
+  const userId = await getUserId();
   const echo = await db.echo.findUnique({ where: { id }, select: { userId: true, isPinned: true } });
-  if (!echo || echo.userId !== session.user.id) throw new Error("Not found");
+  if (!echo || echo.userId !== userId) throw new Error("Not found");
 
   await db.echo.update({ where: { id }, data: { isPinned: !echo.isPinned } });
   revalidatePath("/dashboard/echoes");
@@ -104,18 +92,10 @@ export async function getEchoes(userId: string, type?: string) {
 export async function getEchoStats(userId: string) {
   const [total, byType, recent] = await Promise.all([
     db.echo.count({ where: { userId } }),
-    db.echo.groupBy({
-      by: ["type"],
-      where: { userId },
-      _count: true,
-    }),
+    db.echo.groupBy({ by: ["type"], where: { userId }, _count: true }),
     db.echo.count({
-      where: {
-        userId,
-        createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-      },
+      where: { userId, createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
     }),
   ]);
-
   return { total, byType, recent };
 }
