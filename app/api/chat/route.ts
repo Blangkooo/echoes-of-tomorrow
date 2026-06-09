@@ -7,6 +7,8 @@ import { PERSONALITIES, AIMode } from "@/lib/ai-personalities";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const openai = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
