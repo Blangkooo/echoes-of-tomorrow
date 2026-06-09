@@ -12,30 +12,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
   pages: {
     signIn: "/signin",
     error: "/signin",
   },
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
-        // Check onboarding status
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        // Fetch onboarded status from DB
         const dbUser = await db.user.findUnique({
-          where: { id: user.id },
+          where: { id: user.id! },
           select: { onboarded: true },
         });
+        token.onboarded = dbUser?.onboarded ?? false;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
         (session.user as typeof session.user & { onboarded: boolean }).onboarded =
-          dbUser?.onboarded ?? false;
+          (token.onboarded as boolean) ?? false;
       }
       return session;
     },
   },
   events: {
     async createUser({ user }) {
-      // Create default future self profile for new users
       await db.futureSelfProfile.create({
         data: {
           userId: user.id!,
