@@ -22,9 +22,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        // Fetch onboarded status from DB
+      }
+      // Re-read from DB until onboarded=true so the token stays fresh after onboarding
+      if (token.id && !token.onboarded) {
         const dbUser = await db.user.findUnique({
-          where: { id: user.id! },
+          where: { id: token.id as string },
           select: { onboarded: true },
         });
         token.onboarded = dbUser?.onboarded ?? false;

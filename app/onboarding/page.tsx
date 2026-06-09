@@ -52,7 +52,8 @@ export default function OnboardingPage() {
         lifeGoals: lifeGoalsArray.length > 0 ? lifeGoalsArray : [lifeGoals.trim()],
         bio: currentChallenge || undefined,
       });
-      router.push("/dashboard");
+      // Force a full reload so the JWT session token is refreshed with onboarded=true
+      window.location.href = "/dashboard";
     } catch (err) {
       setError("Something went wrong. Please try again.");
       setLoading(false);
